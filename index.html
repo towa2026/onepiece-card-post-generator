@@ -136,6 +136,18 @@
   .btn-x{background:var(--inkwell);color:var(--aulait)}
   .btn-x:hover{background:var(--lunar)}
 
+  /* ===== History ===== */
+  .history-list{display:flex;flex-direction:column;gap:10px}
+  .history-card{position:relative;background:var(--brulee-pale);border:1.5px solid var(--aulait);border-radius:var(--radius-sm);padding:14px 40px 14px 16px;cursor:pointer;transition:all var(--tr)}
+  .history-card:hover{border-color:var(--brulee);box-shadow:0 2px 8px rgba(44,54,57,.08)}
+  .history-card:active{transform:scale(.99)}
+  .history-date{font-size:.72rem;color:var(--text-muted);font-weight:500;margin-bottom:4px}
+  .history-text{font-size:.82rem;color:var(--text);line-height:1.5;white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+  .history-del{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;border:none;background:var(--aulait-light);color:var(--text-muted);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--tr);line-height:1}
+  .history-del:hover{background:var(--danger-light);color:var(--danger)}
+  .history-clear{display:block;text-align:center;font-size:.78rem;color:var(--text-muted);margin-top:12px;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:inherit}
+  .history-clear:hover{color:var(--danger)}
+
   .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--inkwell);color:var(--aulait);padding:12px 28px;border-radius:var(--radius-pill);font-size:.88rem;font-weight:600;box-shadow:0 6px 24px rgba(44,54,57,.22);z-index:300;opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .hidden{display:none!important}
@@ -290,6 +302,12 @@
       </button>
     </div>
   </div>
+  <!-- 履歴 -->
+  <div class="section hidden" id="historySection">
+    <div class="section-label"><span class="dot"></span>履歴</div>
+    <div class="history-list" id="historyList"></div>
+    <button class="history-clear" id="historyClearBtn" onclick="clearAllHistory()">履歴をすべて削除</button>
+  </div>
 </div>
 
 <!-- Leader Picker Modal -->
@@ -339,7 +357,7 @@ const wlData = {};
 
 function init() {
   renderChips(); renderLeaders(); renderRows(); renderTRows();
-  onTypeChange(); rebind(); updatePreview();
+  onTypeChange(); rebind(); updatePreview(); renderHistory();
 }
 function rebind() {
   document.querySelectorAll("select,input,textarea").forEach(el => {
@@ -613,6 +631,7 @@ function updatePreview() {
 
 /* ---- Copy ---- */
 async function copyPost() {
+  saveToHistory();
   const txt = buildPost();
   try { await navigator.clipboard.writeText(txt); } catch {
     const ta = document.createElement("textarea"); ta.value = txt;
@@ -629,6 +648,7 @@ async function copyPost() {
 }
 
 function postToX() {
+  saveToHistory();
   window.open("https://x.com/intent/post?text=" + encodeURIComponent(buildPost()), "_blank");
 }
 
@@ -636,6 +656,137 @@ function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ---- History (localStorage) ---- */
+const HISTORY_KEY = "opcg_post_history";
+const HISTORY_MAX = 20;
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+function setHistory(arr) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+}
+
+function collectFormState() {
+  return {
+    tournamentType: document.getElementById("tournamentType").value,
+    customType: document.getElementById("customType").value,
+    venue: document.getElementById("venue").value,
+    result: document.getElementById("result").value,
+    selectedColors: [...selectedColors],
+    leaderName: document.getElementById("leaderName").value,
+    customLeader: document.getElementById("customLeader").value,
+    qualifierRank: document.getElementById("qualifierRank").value,
+    numRounds,
+    numTRounds,
+    hasT,
+    oppData: {...oppData},
+    turnData: {...turnData},
+    wlData: {...wlData},
+    comment: document.getElementById("comment").value,
+    postText: buildPost(),
+    savedAt: new Date().toISOString()
+  };
+}
+
+function saveToHistory() {
+  const state = collectFormState();
+  if (!state.postText.replace(/#ワンピカード/,"").trim()) return;
+  const history = getHistory();
+  if (history.length > 0 && history[0].postText === state.postText) return;
+  history.unshift(state);
+  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+  setHistory(history);
+  renderHistory();
+}
+
+function deleteHistory(idx) {
+  const history = getHistory();
+  history.splice(idx, 1);
+  setHistory(history);
+  renderHistory();
+  toast("履歴を削除しました");
+}
+
+function clearAllHistory() {
+  if (!confirm("履歴をすべて削除しますか？")) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  toast("履歴をすべて削除しました");
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const section = document.getElementById("historySection");
+  const list = document.getElementById("historyList");
+  if (history.length === 0) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+  list.innerHTML = history.map((h, i) => {
+    const d = new Date(h.savedAt);
+    const ds = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const preview = (h.postText || "").split("\n").slice(0, 3).join("\n");
+    return `<div class="history-card" onclick="restoreHistory(${i})">
+      <div class="history-date">${ds}</div>
+      <div class="history-text">${escHtml(preview)}</div>
+      <button class="history-del" onclick="event.stopPropagation();deleteHistory(${i})" title="削除">✕</button>
+    </div>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function restoreHistory(idx) {
+  const history = getHistory();
+  const s = history[idx];
+  if (!s) return;
+
+  document.getElementById("tournamentType").value = s.tournamentType || "";
+  onTypeChange();
+  document.getElementById("customType").value = s.customType || "";
+  document.getElementById("venue").value = s.venue || "";
+  document.getElementById("result").value = s.result || "";
+
+  selectedColors = s.selectedColors ? [...s.selectedColors] : [];
+  renderChips();
+
+  document.getElementById("leaderName").value = s.leaderName || "";
+  document.getElementById("customLeaderRow").classList.toggle("hidden", s.leaderName !== "__custom__");
+  document.getElementById("customLeader").value = s.customLeader || "";
+  document.getElementById("qualifierRank").value = s.qualifierRank || "";
+
+  numRounds = s.numRounds ?? 5;
+  document.getElementById("roundsVal").textContent = numRounds;
+  numTRounds = s.numTRounds ?? 3;
+  document.getElementById("tRoundsVal").textContent = numTRounds;
+
+  Object.keys(oppData).forEach(k => delete oppData[k]);
+  Object.keys(turnData).forEach(k => delete turnData[k]);
+  Object.keys(wlData).forEach(k => delete wlData[k]);
+  if (s.oppData) Object.assign(oppData, s.oppData);
+  if (s.turnData) Object.assign(turnData, s.turnData);
+  if (s.wlData) Object.assign(wlData, s.wlData);
+
+  renderRows();
+  renderTRows();
+
+  hasT = !!s.hasT;
+  document.getElementById("toggleT").classList.toggle("active", hasT);
+  document.getElementById("tSection").classList.toggle("hidden", !hasT);
+
+  document.getElementById("comment").value = s.comment || "";
+
+  rebind();
+  updatePreview();
+  window.scrollTo({top: 0, behavior: "smooth"});
+  toast("履歴を復元しました");
 }
 
 init();
