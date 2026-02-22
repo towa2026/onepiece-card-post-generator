@@ -226,11 +226,7 @@
     </div>
     <div class="field">
       <span class="field-label">リーダー名</span>
-      <select id="leaderName"></select>
-    </div>
-    <div class="field hidden" id="customLeaderRow">
-      <span class="field-label">リーダー名（自由入力）</span>
-      <input type="text" id="customLeader" placeholder="例: ベガパンク">
+      <button type="button" id="leaderBtn" class="opp-btn placeholder" onclick="openLeaderModal()">選択してください</button>
     </div>
     <div class="field hidden" id="qualifierRow">
       <span class="field-label">予選順位</span>
@@ -348,15 +344,17 @@ const LARGE_TYPES = [
 ];
 
 let selectedColors = [];
+let selectedLeader = "";
 let numRounds = 5, numTRounds = 3, hasT = false;
 let modalTarget = null;
+let modalMode = "opp";
 let modalFilterColors = [];
 const oppData = {};
 const turnData = {};
 const wlData = {};
 
 function init() {
-  renderChips(); renderLeaders(); renderRows(); renderTRows();
+  renderChips(); renderRows(); renderTRows();
   onTypeChange(); rebind(); updatePreview(); renderHistory();
 }
 function rebind() {
@@ -379,16 +377,11 @@ function toggleColor(c) {
   renderChips(); updatePreview();
 }
 
-/* ---- Leaders ---- */
-function renderLeaders() {
-  const s = document.getElementById("leaderName");
-  s.innerHTML = '<option value="">選択してください</option>' +
-    LEADERS.map(l => `<option value="${l}">${l}</option>`).join("") +
-    '<option value="__custom__">その他（自由入力）</option>';
-  s.addEventListener("change", () => {
-    document.getElementById("customLeaderRow").classList.toggle("hidden", s.value !== "__custom__");
-    updatePreview();
-  });
+/* ---- Leader Button ---- */
+function updateLeaderBtn() {
+  const btn = document.getElementById("leaderBtn");
+  btn.textContent = selectedLeader || "選択してください";
+  btn.classList.toggle("placeholder", !selectedLeader);
 }
 
 /* ---- Type ---- */
@@ -475,9 +468,26 @@ function setWl(key, val, el) {
 /* ---- Modal ---- */
 function openModal(key) {
   modalTarget = key;
+  modalMode = "opp";
   modalFilterColors = [];
   document.getElementById("modalSearch").value = "";
+  document.querySelector(".modal-title").textContent = "対面リーダーを選択";
+  document.getElementById("modalColors").style.display = "";
+  document.getElementById("modalSelLabel").style.display = "";
   renderModalColors(); filterModal();
+  document.getElementById("modalOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+  setTimeout(() => document.getElementById("modalSearch").focus(), 350);
+}
+function openLeaderModal() {
+  modalTarget = "__deck__";
+  modalMode = "deck";
+  modalFilterColors = [];
+  document.getElementById("modalSearch").value = "";
+  document.querySelector(".modal-title").textContent = "使用リーダーを選択";
+  document.getElementById("modalColors").style.display = "none";
+  document.getElementById("modalSelLabel").style.display = "none";
+  filterModal();
   document.getElementById("modalOverlay").classList.add("open");
   document.body.style.overflow = "hidden";
   setTimeout(() => document.getElementById("modalSearch").focus(), 350);
@@ -486,6 +496,8 @@ function closeModal() {
   document.getElementById("modalOverlay").classList.remove("open");
   document.body.style.overflow = "";
   modalTarget = null;
+  document.getElementById("modalColors").style.display = "";
+  document.getElementById("modalSelLabel").style.display = "";
 }
 function closeModalBg(e) {
   if (e.target === document.getElementById("modalOverlay")) closeModal();
@@ -520,12 +532,11 @@ function clearModalColors() {
 function filterModal() {
   const q = (document.getElementById("modalSearch").value || "").trim().toLowerCase();
   const container = document.getElementById("modalLeaders");
-  const colorPrefix = modalFilterColors.join("");
+  const colorPrefix = modalMode === "deck" ? "" : modalFilterColors.join("");
 
   let items = LEADERS.map(l => ({
     leader: l,
-    label: colorPrefix ? `${colorPrefix}${l}` : l,
-    colorTag: colorPrefix || ""
+    label: colorPrefix ? `${colorPrefix}${l}` : l
   }));
 
   if (q) {
@@ -534,13 +545,13 @@ function filterModal() {
 
   if (items.length === 0) {
     container.innerHTML = `<div class="leader-empty">該当なし</div>
-      <div class="leader-item" onclick="selectCustomOpp()"><span>「${document.getElementById("modalSearch").value}」で自由入力</span></div>`;
+      <div class="leader-item" onclick="selectCustomOpp()"><span>「${escHtml(document.getElementById("modalSearch").value)}」で自由入力</span></div>`;
     return;
   }
 
   let html = items.map(x => {
     const display = colorPrefix ? `${colorPrefix}${x.leader}` : x.leader;
-    const sub = colorPrefix ? "" : `<span class="li-color">色を選択してください</span>`;
+    const sub = (modalMode === "opp" && !colorPrefix) ? `<span class="li-color">色を選択してください</span>` : "";
     return `<div class="leader-item" onclick="selectOpp('${display}')"><span>${display}</span>${sub}</div>`;
   }).join("");
   html += `<div class="leader-item" style="color:var(--text-muted)" onclick="selectCustomOpp()"><span>自由入力...</span></div>`;
@@ -549,18 +560,29 @@ function filterModal() {
 
 function selectOpp(label) {
   if (!modalTarget) return;
-  oppData[modalTarget] = label;
-  updateOppBtn(); closeModal(); updatePreview();
+  if (modalMode === "deck") {
+    selectedLeader = label;
+    updateLeaderBtn(); closeModal(); updatePreview();
+  } else {
+    oppData[modalTarget] = label;
+    updateOppBtn(); closeModal(); updatePreview();
+  }
 }
 function selectCustomOpp() {
   const q = (document.getElementById("modalSearch").value || "").trim();
-  if (q) { oppData[modalTarget] = q; }
-  else {
-    const val = prompt("対面を入力してください");
+  let val = q;
+  if (!val) {
+    val = prompt(modalMode === "deck" ? "リーダー名を入力してください" : "対面を入力してください");
     if (!val || !val.trim()) return;
-    oppData[modalTarget] = val.trim();
+    val = val.trim();
   }
-  updateOppBtn(); closeModal(); updatePreview();
+  if (modalMode === "deck") {
+    selectedLeader = val;
+    updateLeaderBtn(); closeModal(); updatePreview();
+  } else {
+    oppData[modalTarget] = val;
+    updateOppBtn(); closeModal(); updatePreview();
+  }
 }
 function updateOppBtn() {
   if (!modalTarget) return;
@@ -584,9 +606,7 @@ function buildPost() {
   if (hdr) lines.push(hdr);
 
   const cs = selectedColors.join("");
-  let ld = document.getElementById("leaderName").value;
-  if (ld === "__custom__") ld = (document.getElementById("customLeader").value || "").trim();
-  const deck = cs + ld;
+  const deck = cs + selectedLeader;
   if (deck) {
     let dl = `使用：${deck}`;
     const qr = (document.getElementById("qualifierRank")?.value || "").trim();
@@ -677,8 +697,7 @@ function collectFormState() {
     venue: document.getElementById("venue").value,
     result: document.getElementById("result").value,
     selectedColors: [...selectedColors],
-    leaderName: document.getElementById("leaderName").value,
-    customLeader: document.getElementById("customLeader").value,
+    leaderName: selectedLeader,
     qualifierRank: document.getElementById("qualifierRank").value,
     numRounds,
     numTRounds,
@@ -757,9 +776,8 @@ function restoreHistory(idx) {
   selectedColors = s.selectedColors ? [...s.selectedColors] : [];
   renderChips();
 
-  document.getElementById("leaderName").value = s.leaderName || "";
-  document.getElementById("customLeaderRow").classList.toggle("hidden", s.leaderName !== "__custom__");
-  document.getElementById("customLeader").value = s.customLeader || "";
+  selectedLeader = s.leaderName || "";
+  updateLeaderBtn();
   document.getElementById("qualifierRank").value = s.qualifierRank || "";
 
   numRounds = s.numRounds ?? 5;
