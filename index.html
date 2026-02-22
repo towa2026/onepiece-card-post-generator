@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ワンピカード 大会結果ポスト作成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --inkwell: #2C3639;
+    --lunar: #3F4E4F;
+    --brulee: #A27B5B;
+    --brulee-dark: #8A6545;
+    --brulee-light: #EDE4D8;
+    --brulee-pale: #F7F3EE;
+    --aulait: #DCD7C9;
+    --aulait-light: #ECEAE3;
+    --bg: #F3F1ED;
+    --white: #FFFFFF;
+    --text: #2C3639;
+    --text-sub: #6B7274;
+    --text-muted: #A8ADAF;
+    --border: #D9D4CC;
+    --danger: #C95D45;
+    --danger-light: #FFF3F0;
+    --card-shadow: 0 4px 16px rgba(44,54,57,0.06);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --radius-pill: 50px;
+    --tr: 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100dvh;-webkit-font-smoothing:antialiased}
+
+  .app-header{background:var(--white);padding:0 0 20px}
+  .header-banner{background:linear-gradient(135deg,var(--inkwell) 0%,var(--lunar) 100%);border-radius:0 0 28px 28px;padding:48px 20px 34px;text-align:center;color:#fff;position:relative;overflow:hidden}
+  .header-banner::before{content:"";position:absolute;top:-50px;right:-30px;width:140px;height:140px;background:rgba(162,123,91,.10);border-radius:50%}
+  .header-banner::after{content:"";position:absolute;bottom:-30px;left:-20px;width:100px;height:100px;background:rgba(162,123,91,.07);border-radius:50%}
+  .header-banner h1{font-size:1.25rem;font-weight:700;letter-spacing:.03em;position:relative}
+  .header-banner p{font-size:.8rem;color:var(--aulait);margin-top:5px;font-weight:400;position:relative}
+
+  .container{max-width:500px;margin:0 auto;padding:16px 16px 120px}
+
+  .section{background:var(--white);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:24px 20px;margin-bottom:14px}
+  .section-label{font-size:.72rem;font-weight:600;color:var(--brulee-dark);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .section-label .dot{width:6px;height:6px;border-radius:50%;background:var(--brulee)}
+
+  .field{margin-bottom:16px}.field:last-child{margin-bottom:0}
+  .field-label{display:block;font-size:.8rem;font-weight:600;color:var(--text-sub);margin-bottom:8px}
+  select,input[type="text"],input[type="number"],textarea{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text);background:var(--white);transition:border-color var(--tr),box-shadow var(--tr);appearance:none;-webkit-appearance:none;font-family:inherit}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A8ADAF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;cursor:pointer}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brulee);box-shadow:0 0 0 3px rgba(162,123,91,.15)}
+  textarea{resize:vertical;min-height:56px}
+  input::placeholder,textarea::placeholder{color:var(--text-muted)}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .color-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .color-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-pill);border:1.5px solid var(--border);background:var(--white);font-size:.85rem;font-weight:500;cursor:pointer;transition:all var(--tr);user-select:none;-webkit-tap-highlight-color:transparent}
+  .color-chip:active{transform:scale(.96)}
+  .color-chip.active{border-color:var(--brulee);background:var(--brulee-pale);color:var(--inkwell);font-weight:600}
+  .cdot{width:14px;height:14px;border-radius:50%;display:inline-block;border:1.5px solid rgba(0,0,0,.06)}
+  .cdot-赤{background:#D9534F}.cdot-青{background:#5B9BD5}.cdot-緑{background:#6BAF6E}.cdot-紫{background:#9B72B0}.cdot-黒{background:#4A4A4A}.cdot-黄{background:#D4A843}
+
+  .stepper-row{display:flex;align-items:center;gap:14px}
+  .stepper{display:inline-flex;align-items:center;border-radius:var(--radius-sm);border:1.5px solid var(--border);overflow:hidden}
+  .stepper button{width:42px;height:40px;border:none;background:var(--brulee-light);color:var(--brulee-dark);font-size:1.3rem;font-weight:700;cursor:pointer;transition:all var(--tr);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;line-height:1}
+  .stepper button:hover{background:var(--brulee);color:var(--white)}
+  .stepper button:active{transform:scale(.94)}
+  .stepper .stepper-val{width:48px;text-align:center;font-size:1rem;font-weight:700;color:var(--text);background:var(--white);line-height:40px;border-left:1.5px solid var(--border);border-right:1.5px solid var(--border)}
+
+  /* ===== Match Row ===== */
+  .match-list{display:flex;flex-direction:column;gap:12px}
+  .match-row{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:start}
+  .match-num{font-size:.82rem;font-weight:700;color:var(--text-muted);text-align:center;line-height:42px}
+
+  .opp-btn{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--white);font-size:.85rem;color:var(--text);cursor:pointer;text-align:left;transition:border-color var(--tr);font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+  .opp-btn.placeholder{color:var(--text-muted)}
+  .opp-btn:hover{border-color:var(--brulee)}
+
+  /* Toggle button group */
+  .tgl-group{display:flex;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);flex-shrink:0}
+  .tgl-btn{padding:9px 0;font-size:.82rem;font-weight:600;cursor:pointer;border:none;background:var(--white);color:var(--text-muted);transition:all var(--tr);font-family:inherit;text-align:center;-webkit-tap-highlight-color:transparent;min-width:30px}
+  .tgl-btn.active{background:var(--brulee);color:var(--white)}
+  .tgl-btn:not(:last-child){border-right:1px solid var(--border)}
+  .tgl-group.turn .tgl-btn{min-width:30px}
+  .tgl-group.wl .tgl-btn{min-width:32px;font-size:.92rem}
+
+  /* ===== Modal ===== */
+  .modal-overlay{position:fixed;inset:0;background:rgba(44,54,57,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .modal-overlay.open{opacity:1;pointer-events:auto}
+  .modal{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:80dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+  .modal-overlay.open .modal{transform:translateY(0)}
+
+  .modal-header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .modal-title{font-size:.95rem;font-weight:700}
+  .modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--aulait-light);color:var(--text-sub);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background var(--tr)}
+  .modal-close:hover{background:var(--border)}
+
+  .modal-sticky{flex-shrink:0;background:var(--white);border-bottom:1px solid var(--border);padding:0 16px 12px;position:sticky;top:0;z-index:2}
+  .modal-color-row{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 8px}
+  .modal-color-chip{padding:6px 12px;border-radius:var(--radius-pill);border:1.5px solid var(--border);background:var(--white);font-size:.8rem;font-weight:500;cursor:pointer;transition:all var(--tr);display:inline-flex;align-items:center;gap:5px}
+  .modal-color-chip:active{transform:scale(.96)}
+  .modal-color-chip.active{border-color:var(--brulee);background:var(--brulee-pale);font-weight:600}
+  .modal-color-chip .mcdot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.06)}
+  .modal-search input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.9rem;font-family:inherit;color:var(--text);background:var(--brulee-pale);appearance:none;-webkit-appearance:none}
+  .modal-search input:focus{outline:none;border-color:var(--brulee)}
+  .modal-selected-colors{font-size:.78rem;color:var(--brulee-dark);font-weight:600;padding:4px 0 0;min-height:1.2em}
+
+  .modal-body{overflow-y:auto;padding:4px 12px 24px;flex:1;-webkit-overflow-scrolling:touch}
+  .leader-list{display:flex;flex-direction:column;gap:2px}
+  .leader-item{padding:12px 14px;border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:500;transition:background var(--tr);display:flex;align-items:center;justify-content:space-between}
+  .leader-item:hover{background:var(--brulee-pale)}
+  .leader-item:active{background:var(--brulee-light)}
+  .leader-item .li-color{font-size:.75rem;color:var(--text-muted);font-weight:400}
+  .leader-empty{padding:24px;text-align:center;color:var(--text-muted);font-size:.88rem}
+
+  .toggle-row{display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent}
+  .toggle-track{width:48px;height:26px;border-radius:13px;background:var(--border);position:relative;transition:background var(--tr);flex-shrink:0}
+  .toggle-track::after{content:"";width:20px;height:20px;background:var(--white);border-radius:50%;position:absolute;top:3px;left:3px;transition:transform var(--tr);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .toggle-row.active .toggle-track{background:var(--brulee)}
+  .toggle-row.active .toggle-track::after{transform:translateX(22px)}
+  .toggle-text{font-size:.9rem;font-weight:500;color:var(--text)}
+
+  .preview-card{background:var(--brulee-pale);border:1.5px solid var(--aulait);border-radius:var(--radius-sm);padding:18px;font-size:.9rem;white-space:pre-wrap;word-break:break-all;line-height:1.75;min-height:80px;color:var(--text)}
+  .char-badge{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:var(--radius-pill);font-size:.75rem;font-weight:600;background:var(--brulee-light);color:var(--brulee-dark)}
+  .char-badge.over{background:var(--danger-light);color:var(--danger)}
+
+  .btn-group{display:flex;gap:10px;margin-top:18px}
+  .btn{flex:1;padding:14px 16px;border:none;border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;cursor:pointer;transition:all var(--tr);display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;-webkit-tap-highlight-color:transparent}
+  .btn:active{transform:scale(.97)}
+  .btn-copy{background:var(--white);color:var(--text);border:1.5px solid var(--border)}
+  .btn-copy:hover{border-color:var(--brulee);color:var(--brulee-dark)}
+  .btn-copy.copied{background:var(--brulee);color:var(--white);border-color:var(--brulee)}
+  .btn-x{background:var(--inkwell);color:var(--aulait)}
+  .btn-x:hover{background:var(--lunar)}
+
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--inkwell);color:var(--aulait);padding:12px 28px;border-radius:var(--radius-pill);font-size:.88rem;font-weight:600;box-shadow:0 6px 24px rgba(44,54,57,.22);z-index:300;opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hidden{display:none!important}
+
+  @media(max-width:480px){
+    .container{padding:12px 12px 120px}
+    .section{padding:20px 16px;border-radius:16px}
+    .field-grid{grid-template-columns:1fr}
+    .match-row{grid-template-columns:24px 1fr auto auto;gap:6px}
+    .opp-btn{padding:9px 8px;font-size:.82rem}
+    .btn-group{flex-direction:column}
+    .header-banner{padding:38px 16px 28px}
+    .modal{max-height:85dvh}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-banner">
+    <h1>大会結果ポスト作成</h1>
+    <p>ワンピースカードの戦績を X に投稿しよう</p>
+  </div>
+</header>
+
+<div class="container">
+  <!-- 大会情報 -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>大会情報</div>
+    <div class="field-grid">
+      <div class="field">
+        <span class="field-label">大会種別</span>
+        <select id="tournamentType" onchange="onTypeChange()">
+          <option value="フラッグシップバトル">フラッグシップバトル</option>
+          <option value="フラシ">フラシ（略称）</option>
+          <option value="スタンダードバトル">スタンダードバトル</option>
+          <option value="スタバ">スタバ（略称）</option>
+          <option value="チャンピオンシップ 店舗予選">CS 店舗予選</option>
+          <option value="チャンピオンシップ エリア大会">CS エリア大会</option>
+          <option value="チャンピオンシップ 決勝大会">CS 決勝大会</option>
+          <option value="BANDAI CARD GAMES Fest">BANDAI CARD GAMES Fest</option>
+          <option value="交流会">交流会</option>
+          <option value="">その他</option>
+        </select>
+      </div>
+      <div class="field hidden" id="customTypeRow">
+        <span class="field-label">大会名</span>
+        <input type="text" id="customType" placeholder="大会名を入力">
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label">会場 / 店舗名</span>
+      <input type="text" id="venue" placeholder="例: カードボックス梅田店">
+    </div>
+    <div class="field">
+      <span class="field-label">結果</span>
+      <select id="result">
+        <option value="優勝">優勝</option>
+        <option value="準優勝">準優勝</option>
+        <option value="ベスト4">ベスト4</option>
+        <option value="ベスト8">ベスト8</option>
+        <option value="ベスト16">ベスト16</option>
+        <option value="ベスト32">ベスト32</option>
+        <option value="予選落ち">予選落ち</option>
+        <option value="">結果を書かない</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 使用デッキ -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>使用デッキ</div>
+    <div class="field">
+      <span class="field-label">リーダー色</span>
+      <div class="color-chips" id="colorChips"></div>
+    </div>
+    <div class="field">
+      <span class="field-label">リーダー名</span>
+      <select id="leaderName"></select>
+    </div>
+    <div class="field hidden" id="customLeaderRow">
+      <span class="field-label">リーダー名（自由入力）</span>
+      <input type="text" id="customLeader" placeholder="例: ベガパンク">
+    </div>
+    <div class="field hidden" id="qualifierRow">
+      <span class="field-label">予選順位</span>
+      <input type="text" id="qualifierRank" placeholder="例: 予選1位通過">
+    </div>
+  </div>
+
+  <!-- マッチアップ（予選） -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>マッチアップ（予選）</div>
+    <div class="field">
+      <div class="stepper-row">
+        <span class="field-label" style="margin:0">ラウンド数</span>
+        <div class="stepper">
+          <button type="button" onclick="changeRounds(-1)">−</button>
+          <span class="stepper-val" id="roundsVal">5</span>
+          <button type="button" onclick="changeRounds(1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="match-list" id="matchList"></div>
+  </div>
+
+  <!-- 決勝トーナメント -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>決勝トーナメント</div>
+    <div class="toggle-row" id="toggleT" onclick="toggleTournament()">
+      <div class="toggle-track"></div>
+      <span class="toggle-text">決勝トーナメントあり</span>
+    </div>
+    <div id="tSection" class="hidden" style="margin-top:14px">
+      <div class="field">
+        <div class="stepper-row">
+          <span class="field-label" style="margin:0">ラウンド数</span>
+          <div class="stepper">
+            <button type="button" onclick="changeTRounds(-1)">−</button>
+            <span class="stepper-val" id="tRoundsVal">3</span>
+            <button type="button" onclick="changeTRounds(1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="match-list" id="tMatchList"></div>
+    </div>
+  </div>
+
+  <!-- コメント -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>コメント</div>
+    <div class="field">
+      <textarea id="comment" rows="2" maxlength="100" placeholder="一言あれば（任意）"></textarea>
+    </div>
+  </div>
+
+  <!-- プレビュー -->
+  <div class="section">
+    <div class="section-label"><span class="dot"></span>プレビュー</div>
+    <div class="preview-card" id="preview"></div>
+    <div style="display:flex;justify-content:flex-end">
+      <span class="char-badge" id="charBadge">0 / 280</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-copy" id="btnCopy" onclick="copyPost()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2.5"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        コピー
+      </button>
+      <button class="btn btn-x" onclick="postToX()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        X で投稿
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Leader Picker Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">対面リーダーを選択</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-sticky">
+      <div class="modal-color-row" id="modalColors"></div>
+      <div class="modal-selected-colors" id="modalSelLabel"></div>
+      <div class="modal-search">
+        <input type="text" id="modalSearch" placeholder="リーダー名で検索..." oninput="filterModal()">
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="leader-list" id="modalLeaders"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LEADERS = [
+  "ルフィ","エース","ゾロ","サンジ","ナミ","ロー","キッド","ヤマト",
+  "ハンコック","カタクリ","ドフラミンゴ","イム","ミホーク","白ひげ","シャンクス",
+  "ボニー","マルコ","サボ","スモーカー","クロコダイル","チョッパー",
+  "ビッグマム/リンリン","ティーチ","ロジャー","モリア","ゾロ&サンジ",
+  "ペローナ","レベッカ","日和","エネル","くま","ベガパンク"
+];
+const COLORS = ["赤","青","緑","紫","黒","黄"];
+const COLOR_HEX = {"赤":"#D9534F","青":"#5B9BD5","緑":"#6BAF6E","紫":"#9B72B0","黒":"#4A4A4A","黄":"#D4A843"};
+const LARGE_TYPES = [
+  "チャンピオンシップ 店舗予選","チャンピオンシップ エリア大会",
+  "チャンピオンシップ 決勝大会","BANDAI CARD GAMES Fest"
+];
+
+let selectedColors = [];
+let numRounds = 5, numTRounds = 3, hasT = false;
+let modalTarget = null;
+let modalFilterColors = [];
+const oppData = {};
+const turnData = {};
+const wlData = {};
+
+function init() {
+  renderChips(); renderLeaders(); renderRows(); renderTRows();
+  onTypeChange(); rebind(); updatePreview();
+}
+function rebind() {
+  document.querySelectorAll("select,input,textarea").forEach(el => {
+    el.addEventListener("input", updatePreview);
+    el.addEventListener("change", updatePreview);
+  });
+}
+
+/* ---- Deck Color Chips ---- */
+function renderChips() {
+  document.getElementById("colorChips").innerHTML = COLORS.map(c =>
+    `<div class="color-chip${selectedColors.includes(c)?" active":""}" onclick="toggleColor('${c}')">
+      <span class="cdot cdot-${c}"></span>${c}</div>`
+  ).join("");
+}
+function toggleColor(c) {
+  const i = selectedColors.indexOf(c);
+  if (i >= 0) selectedColors.splice(i, 1); else selectedColors.push(c);
+  renderChips(); updatePreview();
+}
+
+/* ---- Leaders ---- */
+function renderLeaders() {
+  const s = document.getElementById("leaderName");
+  s.innerHTML = '<option value="">選択してください</option>' +
+    LEADERS.map(l => `<option value="${l}">${l}</option>`).join("") +
+    '<option value="__custom__">その他（自由入力）</option>';
+  s.addEventListener("change", () => {
+    document.getElementById("customLeaderRow").classList.toggle("hidden", s.value !== "__custom__");
+    updatePreview();
+  });
+}
+
+/* ---- Type ---- */
+function onTypeChange() {
+  const v = document.getElementById("tournamentType").value;
+  document.getElementById("customTypeRow").classList.toggle("hidden", v !== "");
+  document.getElementById("qualifierRow").classList.toggle("hidden", !LARGE_TYPES.includes(v));
+  updatePreview();
+}
+
+/* ---- Stepper ---- */
+function changeRounds(d) {
+  numRounds = Math.max(0, Math.min(15, numRounds + d));
+  document.getElementById("roundsVal").textContent = numRounds;
+  renderRows(); rebind(); updatePreview();
+}
+function changeTRounds(d) {
+  numTRounds = Math.max(1, Math.min(10, numTRounds + d));
+  document.getElementById("tRoundsVal").textContent = numTRounds;
+  renderTRows(); rebind(); updatePreview();
+}
+
+/* ---- Toggle ---- */
+function toggleTournament() {
+  hasT = !hasT;
+  document.getElementById("toggleT").classList.toggle("active", hasT);
+  document.getElementById("tSection").classList.toggle("hidden", !hasT);
+  updatePreview();
+}
+
+/* ---- Match Rows ---- */
+function renderRows() {
+  const list = document.getElementById("matchList");
+  list.innerHTML = "";
+  for (let i = 0; i < numRounds; i++) list.appendChild(makeRow(i, "q_"));
+}
+function renderTRows() {
+  const list = document.getElementById("tMatchList");
+  list.innerHTML = "";
+  for (let i = 0; i < numTRounds; i++) list.appendChild(makeRow(i, "t_"));
+}
+
+function makeRow(i, pre) {
+  const key = `${pre}${i}`;
+  const el = document.createElement("div");
+  el.className = "match-row";
+
+  const oppVal = oppData[key] || "";
+  const btnClass = oppVal ? "opp-btn" : "opp-btn placeholder";
+  const btnText = oppVal || "対面を選択";
+
+  const tv = turnData[key] || "";
+  const wv = wlData[key] || "";
+
+  el.innerHTML = `
+    <span class="match-num">${i+1}</span>
+    <button type="button" id="${pre}oppbtn_${i}" class="${btnClass}" onclick="openModal('${key}')">${btnText}</button>
+    <div class="tgl-group turn" id="${pre}turn_${i}">
+      <div class="tgl-btn${tv==="先"?" active":""}" onclick="setTurn('${key}','先',this)">先</div>
+      <div class="tgl-btn${tv==="後"?" active":""}" onclick="setTurn('${key}','後',this)">後</div>
+    </div>
+    <div class="tgl-group wl" id="${pre}wl_${i}">
+      <div class="tgl-btn${wv==="⭕️"?" active":""}" onclick="setWl('${key}','⭕️',this)">⭕️</div>
+      <div class="tgl-btn${wv==="❌"?" active":""}" onclick="setWl('${key}','❌',this)">❌</div>
+    </div>`;
+  return el;
+}
+
+function setTurn(key, val, el) {
+  turnData[key] = turnData[key] === val ? "" : val;
+  const grp = el.parentElement;
+  grp.querySelectorAll(".tgl-btn").forEach(b => b.classList.remove("active"));
+  if (turnData[key]) el.classList.add("active");
+  updatePreview();
+}
+function setWl(key, val, el) {
+  wlData[key] = wlData[key] === val ? "" : val;
+  const grp = el.parentElement;
+  grp.querySelectorAll(".tgl-btn").forEach(b => b.classList.remove("active"));
+  if (wlData[key]) el.classList.add("active");
+  updatePreview();
+}
+
+/* ---- Modal ---- */
+function openModal(key) {
+  modalTarget = key;
+  modalFilterColors = [];
+  document.getElementById("modalSearch").value = "";
+  renderModalColors(); filterModal();
+  document.getElementById("modalOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+  setTimeout(() => document.getElementById("modalSearch").focus(), 350);
+}
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+  modalTarget = null;
+}
+function closeModalBg(e) {
+  if (e.target === document.getElementById("modalOverlay")) closeModal();
+}
+
+function renderModalColors() {
+  document.getElementById("modalColors").innerHTML = COLORS.map(c => {
+    const active = modalFilterColors.includes(c) ? " active" : "";
+    return `<div class="modal-color-chip${active}" onclick="toggleModalColor('${c}')">
+      <span class="mcdot" style="background:${COLOR_HEX[c]}"></span>${c}</div>`;
+  }).join("") +
+    `<div class="modal-color-chip" style="font-size:.72rem;color:var(--text-muted)" onclick="clearModalColors()">リセット</div>`;
+
+  const label = document.getElementById("modalSelLabel");
+  if (modalFilterColors.length > 0) {
+    label.textContent = modalFilterColors.join("") + "〇〇 で選択されます";
+  } else {
+    label.textContent = "";
+  }
+}
+
+function toggleModalColor(c) {
+  const i = modalFilterColors.indexOf(c);
+  if (i >= 0) modalFilterColors.splice(i, 1); else modalFilterColors.push(c);
+  renderModalColors(); filterModal();
+}
+function clearModalColors() {
+  modalFilterColors = [];
+  renderModalColors(); filterModal();
+}
+
+function filterModal() {
+  const q = (document.getElementById("modalSearch").value || "").trim().toLowerCase();
+  const container = document.getElementById("modalLeaders");
+  const colorPrefix = modalFilterColors.join("");
+
+  let items = LEADERS.map(l => ({
+    leader: l,
+    label: colorPrefix ? `${colorPrefix}${l}` : l,
+    colorTag: colorPrefix || ""
+  }));
+
+  if (q) {
+    items = items.filter(x => x.leader.toLowerCase().includes(q));
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = `<div class="leader-empty">該当なし</div>
+      <div class="leader-item" onclick="selectCustomOpp()"><span>「${document.getElementById("modalSearch").value}」で自由入力</span></div>`;
+    return;
+  }
+
+  let html = items.map(x => {
+    const display = colorPrefix ? `${colorPrefix}${x.leader}` : x.leader;
+    const sub = colorPrefix ? "" : `<span class="li-color">色を選択してください</span>`;
+    return `<div class="leader-item" onclick="selectOpp('${display}')"><span>${display}</span>${sub}</div>`;
+  }).join("");
+  html += `<div class="leader-item" style="color:var(--text-muted)" onclick="selectCustomOpp()"><span>自由入力...</span></div>`;
+  container.innerHTML = html;
+}
+
+function selectOpp(label) {
+  if (!modalTarget) return;
+  oppData[modalTarget] = label;
+  updateOppBtn(); closeModal(); updatePreview();
+}
+function selectCustomOpp() {
+  const q = (document.getElementById("modalSearch").value || "").trim();
+  if (q) { oppData[modalTarget] = q; }
+  else {
+    const val = prompt("対面を入力してください");
+    if (!val || !val.trim()) return;
+    oppData[modalTarget] = val.trim();
+  }
+  updateOppBtn(); closeModal(); updatePreview();
+}
+function updateOppBtn() {
+  if (!modalTarget) return;
+  const m = modalTarget.match(/^(.+?)(\d+)$/);
+  if (!m) return;
+  const btn = document.getElementById(`${m[1]}oppbtn_${m[2]}`);
+  if (!btn) return;
+  const v = oppData[modalTarget] || "";
+  btn.textContent = v || "対面を選択";
+  btn.classList.toggle("placeholder", !v);
+}
+
+/* ---- Build Post ---- */
+function buildPost() {
+  const lines = [];
+  let typ = document.getElementById("tournamentType").value;
+  if (!typ) typ = (document.getElementById("customType").value || "").trim();
+  const venue = (document.getElementById("venue").value || "").trim();
+  const res = document.getElementById("result").value;
+  const hdr = [typ, venue, res].filter(Boolean).join(" ");
+  if (hdr) lines.push(hdr);
+
+  const cs = selectedColors.join("");
+  let ld = document.getElementById("leaderName").value;
+  if (ld === "__custom__") ld = (document.getElementById("customLeader").value || "").trim();
+  const deck = cs + ld;
+  if (deck) {
+    let dl = `使用：${deck}`;
+    const qr = (document.getElementById("qualifierRank")?.value || "").trim();
+    if (qr && !document.getElementById("qualifierRow").classList.contains("hidden")) dl += ` ${qr}`;
+    lines.push(dl);
+  }
+
+  const ml = [];
+  for (let i = 0; i < numRounds; i++) { const l = mline("q_", i, i+1); if (l) ml.push(l); }
+  if (ml.length) lines.push(...ml);
+
+  if (hasT) {
+    const tl = [];
+    for (let i = 0; i < numTRounds; i++) { const l = mline("t_", i, i+1); if (l) tl.push(l); }
+    if (tl.length) { lines.push("トナメ"); lines.push(...tl); }
+  }
+
+  const cmt = (document.getElementById("comment").value || "").trim();
+  if (cmt) { lines.push(""); lines.push(cmt); }
+  lines.push(""); lines.push("#ワンピカード");
+  return lines.join("\n");
+}
+
+function mline(pre, i, n) {
+  const key = `${pre}${i}`;
+  const o = oppData[key] || "";
+  if (!o) return "";
+  const t = turnData[key] || "";
+  const w = wlData[key] || "";
+  return `${n}.${o}${t ? " " + t : ""}${w}`;
+}
+
+/* ---- Preview ---- */
+function updatePreview() {
+  const txt = buildPost();
+  document.getElementById("preview").textContent = txt;
+  const len = txt.length;
+  const b = document.getElementById("charBadge");
+  b.textContent = `${len} / 280`;
+  b.classList.toggle("over", len > 280);
+}
+
+/* ---- Copy ---- */
+async function copyPost() {
+  const txt = buildPost();
+  try { await navigator.clipboard.writeText(txt); } catch {
+    const ta = document.createElement("textarea"); ta.value = txt;
+    document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+  }
+  const b = document.getElementById("btnCopy");
+  b.classList.add("copied");
+  b.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> コピー済み';
+  toast("コピーしました！");
+  setTimeout(() => {
+    b.classList.remove("copied");
+    b.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2.5"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> コピー';
+  }, 2000);
+}
+
+function postToX() {
+  window.open("https://x.com/intent/post?text=" + encodeURIComponent(buildPost()), "_blank");
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+init();
+</script>
+</body>
+</html>
